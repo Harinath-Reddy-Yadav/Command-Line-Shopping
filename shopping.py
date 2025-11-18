@@ -1,150 +1,251 @@
-from datetime import datetime
-import os
+import re
+import datetime
+    # 1) Begins with 0 or 91
+    # 2) Then contains 6,7, 8 or 9.
+    # 3) Then contains 9 digits
+Pattern = re.compile("(0|91)?[6-9][0-9]{9}$")
+#phone_number_regex = r"^(?:\+91|0)?[1-9]\d{9}$"
+name_pattern = re.compile(r"^[a-zA-Z\s]+$")
 
-class Product:
+class Item:
     def __init__(self, name, price):
         self.name = name
         self.price = price
 
-class Electronics(Product):
-    def __init__(self, name, price, warranty_years):
-        super().__init__(name, price)
-        self.warranty_years = warranty_years
+    def __str__(self):
+        return f"{self.name} - ${self.price}"
 
-class Clothing(Product):
+class Product(Item):
+    TAX_RATE = 0.1  # 10% tax rate
+
+    def __init__(self, name, price):
+        super().__init__(name, price)
+
+    def total_cost(self, quantity):
+        total = self.price * quantity
+        total_with_tax = total * (1 + Product.TAX_RATE)
+        return total_with_tax
+
+
+class Electronics(Item):
+    def __init__(self, name, price, warranty):
+        super().__init__(name, price)
+        self.warranty = warranty
+
+    def __str__(self):
+        return f"{super().__str__()}, Warranty: {self.warranty} months,"
+
+
+class Clothing(Item):
     def __init__(self, name, price, size):
         super().__init__(name, price)
         self.size = size
 
-class Food(Product):
-    def __init__(self, name, price, expiration_date):
-        super().__init__(name, price)
-        self.expiration_date = expiration_date
+    def __str__(self):
+        return f"{super().__str__()}, Size: {self.size},"
 
-class Cart:
+
+class Food(Item):
+    def __init__(self, name, price, expiry_date):
+        super().__init__(name, price)
+        self.expiry_date = expiry_date
+
+    def __str__(self):
+        return f"{super().__str__()}, Expiry Date: {self.expiry_date},"
+
+
+class shopping_cart:
     def __init__(self):
         self.items = []
 
     def add_item(self, product, quantity):
-        #check whether the procuct already exists in the cart
-        for i, (item, qty) in enumerate(self.items):
-            if item.name == product.name:
-                self.items[i] = (item, qty + quantity)
+        for item in self.items:
+            if item["product"].name == product.name:
+                item["quantity"] += quantity
+                print(f"{quantity} {product.name}(s) added to the cart.")
                 return
-        self.items.append((product, quantity))
-
-    def remove_item(self, product_name):
-        self.items = [item for item in self.items if item[0].name != product_name]
+                
+        print("\n")
+        print("Last added product to cart ", product,"quantity -",quantity)
+        self.items.append({"product": product, "quantity": quantity, "price":product.price})
+        
 
     def view_cart(self):
-        print("Items in your cart:")
-        print("-" * 30)
-        for product, quantity in self.items:
-            print(f"{product.name} - ${product.price} x {quantity}")
-        input("press Enter to continue...")
+        cart_total_cost = 0
+        if not self.items:
+            print(f"Your cart is empty.")
+            print(f"Total Cart Price: {cart_total_cost}")
+        else:
+            print("\n")
+            print("Items in your cart:")
+            for item in self.items:
+                cart_total_cost += item['price'] * item['quantity']
+                print(f"{item['product']} x {item['quantity']}")
+            print(f"Total Cart Price: {cart_total_cost}")
+
+    def update_quantity(self, product_name, new_quantity):
+        for item in self.items:
+            if item["product"].name == product_name:
+                item["quantity"] = new_quantity
+                print(f"Quantity of {product_name} updated to {new_quantity}.")
+                return
+        print(f"{product_name} not found in the cart.")
+
+
+    def remove_item(self, product_name):
+        for item in self.items:
+            if item["product"].name == product_name:
+                self.items.remove(item)
+                print("\n")
+                print(f"{product_name} removed from the cart.")
+                return
+        print(f"{product_name} not found in the cart.")
+
 
     def clear_cart(self):
         self.items = []
-    
-    def place_order(self, name, number, invoice_name):
-        invoice_name += ".txt"
-        with open(invoice_name, "w") as f:
-            f.write("\t" *5 + "Generated Invoice the cart\n\n")
-            f.write(f"Customer Name: {name}\n")
-            f.write(f"Customer Number: {number}\n")
-            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            f.write("Items:\n")
-            total = 0
-            for product, quantity in self.items:
-                f.write(f"{product.name} x {quantity}".ljust(40,' ')  + f" : ${product.price * quantity} \n")
-                total += product.price * quantity
-            f.write("\n" + "-" * 80 + "\n")
-            f.write("Total Amount".ljust(40,' ') + f" : ${total}"+ "\n")
-            saved_path = os.path.abspath(invoice_name)
-        return saved_path
-    
+        print("Cart cleared.")
+        
+        
+    @staticmethod
+    def cust_name():
+        while True:
+            cust_name = input("Enter your name: ")
+            if name_pattern.match(cust_name):
+                return cust_name
+            else:
+                print("\n")
+                print("In valid Name\nIt must start with A to Z or a to z follow with space.")
+        
+    @staticmethod
+    def phone_num():
+        while True:
+            phone_num = input("Enter the Phone Number: ")
+            if Pattern.match(phone_num):
+                return phone_num
+            else:
+                print("\n")
+                print("In valid Phone Number,\nIt must start with (0 or 91)\nstart with 6,7,8 or 9 and followed 9 digits)")
 
-def ShowInfo():
-    text = "> Start the Shopping <"
-    print(text.center(100, "-"))
-    option_list = ["Add item to cart", "Remove item from cart", "View cart", "update item Quantity", "Clear cart", "Place Order", "Exit"]
-    for i, option in enumerate(option_list, start=1):
-        print(' '*40, end='')
-        print(f"{i}. {option}")
-    option = int(input("Enter your choice (1-7): "))
-    return option
 
-def validate_name_number(name, number):
-    # name: alphabetic + spaces only, min 2 chars
-    if not all(c.isalpha() or c.isspace() for c in name) or len(name.strip()) < 2:
-        return False
-    # number: digits only, exactly 10 chars with optional 0 or 91 at start1
-    if number.startswith('0') or number.startswith('91'):
-        if not number.isdigit() or len(number) != 12:
-            return False
-    elif not number.isdigit() or len(number) != 10:
-        return False
-    return True
-# ...existing code...
+    def place_order(self, filename, cust_name, phone_num):
+        if not self.items:
+            print("Cannot place an order with an empty cart.")
+            return
 
+        total = 0
+        invoice = 20*" "+"Generated Invoice the cart\n"
+        invoice += f"\n"
+        invoice += f"Customer Name: {cust_name}\n"
+        invoice += f"Phone Number: {phone_num}\n"
+        invoice += f"Date: {datetime.datetime.now()}\n"
+        invoice += f"\n"
+        for item in self.items:
+            product = item["product"]
+            quantity = item["quantity"]
+            total += Product.total_cost(product, quantity)
+            invoice += f"{product.name} x {quantity}{10*' '}            : ${Product.total_cost(product, quantity)}\n"
+        invoice += f"\n"
+        invoice += f"----------------------------------------------------------\n"
+        invoice += f"Total:{30*' '}${round(total, 3)}"
+
+        with open(filename, "w") as file:
+            file.write(invoice)
+
+        print(f"Invoice generated and saved to {filename}")
+        self.clear_cart()
+
+def show_menu():
+    print("\n-----------------------> Start the shopping <---------------------")
+    print(20*" ","1. Add item to cart")
+    print(20*" ","2. Remove item from cart")
+    print(20*" ","3. View cart")
+    print(20*" ","4. Update item quantity")
+    print(20*" ","5. Clear cart")
+    print(20*" ","6. Place order")
+    print(20*" ","7. Exit")
+
+
+# Sample usage
 if __name__ == "__main__":
-    invoice_path = ''
-    products = [
-        Electronics("Laptop", 40000, 2),
-        Electronics("Headphones", 3000, 1),
-        Electronics("SamsungS22", 82000, 1),
-        Clothing("Shirt", 500, "M"),
-        Clothing("Pant", 1200, "L"),
-        Food("Apple", 50, "2024-12-01"),
-        Food("Banana", 30, "2024-06-15"),
-        Food("Pappaya", 40, "2024-06-10")
-    ]
-    cart = Cart()
-    while True:
-        option = ShowInfo()
-        if option == 1:
-            print("Available Products to add to cart:")
-            for i, product in enumerate(products, start=1):
-                print(' '*25, end='')
-                print(f"{i}. {product.name} - ${product.price}")
-            choice = int(input("Select a product to add to cart (1-8): "))
-            quantity = int(input("Enter quantity: "))
-            cart.add_item(products[choice - 1], quantity)
-            cart.view_cart()
-        elif option == 2:
-            cart.view_cart()
-            product_name = input("Enter the name of the product to remove from cart: ")
-            cart.remove_item(product_name)
-            cart.view_cart()
-        elif option == 3:
-            cart.view_cart()
-        elif option == 4:
-            cart.view_cart()
-            product_name = input("Enter the name of the product to update quantity: ")
-            quantity = int(input("Enter new quantity: "))
-            cart.remove_item(product_name)
-            for product in products:
-                if product.name == product_name:
-                    cart.add_item(product, quantity)
-                else:
-                    print("Product not found in cart.")
-            cart.view_cart()
-        elif option == 5:
-            cart.clear_cart()
-            print("Cart cleared.")
-        elif option == 6:
-            name = input("Enter your name: ")
-            number = input("Enter your number: ")
-            validate = validate_name_number(name, number)
-            if not validate:
-                print("Invalid name or number. Please try again.")
-                continue
-            invoice_name = input("Enter invoice file name: ")
-            invoice_path = cart.place_order(name, number, invoice_name)
-            print("Order placed successfully!")
-            print("Thank you for shopping! Please fimnd the invoice at "+invoice_path)
-            break
-        elif option == 7:
-            print("Exiting the program. Thank you for shopping!")
-            break
 
+    # Creating some products bydefault
+    laptop = Electronics("Laptop", 40000, 12)
+    headphones = Electronics("Headphones", 3000, 6)
+    phone = Electronics("SamsungS22", 82000, 18)
+    shirt = Clothing("Shirt", 600, "Medium")
+    pant = Clothing("Pant", 1200, "34")
+    apple = Food("Apple", 50, "2024-04-30")
+    banana = Food("Banana", 10, "2024-04-30")
+    papaya = Food("Papaya", 60, "2024-04-30")
+
+    # Initialize shopping cart
+    cart = shopping_cart()
+
+    # Menu loop
+    while True:
+        show_menu()
+        #User choice to add products to cart
+        user_choice = input("Enter your choice: ")
+
+        #get the choice
+        if user_choice == "1":
+            print("\n")
+            print("Available products to Add to cart :")
+            print(20*" ","1. Laptop - 1N = 40000, Warranty: 12 months")
+            print(20*" ","2. Headphones - 1N = 3000, Warranty: 6 months")
+            print(20*" ","3. SamsungS22 - 1N = 82000, Warranty: 18 months")
+            print(20*" ","4. Shirt - 1N = 600, Size: Medium")
+            print(20*" ","5. Pant - 1N = 1200, Size: 34")
+            print(20*" ","6. Apple - 1N = 50, Expiry Date: 2024-04-30")
+            print(20*" ","7. Banana - 1N = 10, Expiry Date: 2024-04-30")
+            print(20*" ","8. Papaya - 1N = 60, Expiry Date: 2024-04-30")
+            #Take Inputs from user
+            product_choice = input("Enter the product number from above : ")
+            product_quantity = int(input("Enter the product quantity: "))
+
+            if product_choice == "1":
+                cart.add_item(laptop, product_quantity)
+            elif product_choice == "2":
+                cart.add_item(headphones, product_quantity)
+            elif product_choice == "3":
+                cart.add_item(phone, product_quantity)
+            elif product_choice == "4":
+                cart.add_item(shirt, product_quantity)
+            elif product_choice == "5":
+                cart.add_item(pant, product_quantity)
+            elif product_choice == "6":
+                cart.add_item(apple, product_quantity)
+            elif product_choice == "7":
+                cart.add_item(banana, product_quantity)
+            elif product_choice == "8":
+                cart.add_item(papaya, product_quantity)
+            else:
+                print("Invalid product number.")
+        elif user_choice == "2":
+            product_name = input("Enter the name of the product to remove: ")
+            cart.remove_item(product_name)
+        elif user_choice == "3":
+            cart.view_cart()
+        elif user_choice == "4":
+            product_name = input("Enter the name of the product to update quantity: ")
+            new_quantity = int(input("Enter the new quantity: "))
+            cart.update_quantity(product_name, new_quantity)
+        elif user_choice == "5":
+            cart.clear_cart()
+        elif user_choice == "6":
+            cust_name = cart.cust_name()
+            phone_num = cart.phone_num()
+            file_name = input("Enter the filename for the invoice (e.g., invoice): ")
+            if not file_name:
+                print("\n")
+                print("In valid File Name")
+            else:
+                print("Placing an order")
+                cart.place_order(file_name+".txt", cust_name, phone_num)
+        elif user_choice == "7":
+            print("Logging off thank you. Visit Again!")
+            break
+        else:
+            print("\n")
+            print("Invalid choice. Please choose again.")
